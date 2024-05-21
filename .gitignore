@@ -1,0 +1,32 @@
+# Ignore virtual environment directory
+venv/
+
+# Ignore credentials file
+credentials.json
+
+# Ignore MacOS system files
+.DS_Store
+
+# Ignore Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Ignore VS Code settings
+.vscode/
+
+# Ignore environment variables
+.env
+
+# Ignore other log files
+*.log
+
+# Ignore compiled files
+*.so
+*.o
+*.out
+*.a
+*.pyc
