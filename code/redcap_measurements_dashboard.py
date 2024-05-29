@@ -12,7 +12,7 @@ st.markdown("""
 Please export the CSV (raw data) from REDCap using the following steps:
 1. Go to the REDCap Data Exports, Reports, and Stats column under the Applications section.
 2. In "All data (all records and fields)", click the "Export" button.
-3. Choose the "CSV (raw data)" option.
+3. Choose the "**CSV (raw data)**" option.
 4. **Do not** click the checkbox for "Remove All Identifier Fields (tagged in Data Dictionary)".
 5. Click "Export Data".
 6. Upload the exported CSV file below (**DON'T CONSIDER THE NameError, UPLOAD THE FILE**).
