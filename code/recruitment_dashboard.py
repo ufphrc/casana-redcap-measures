@@ -172,5 +172,5 @@ if uploaded_file:
 
     # Display details for the selected coordinator
     st.subheader(f"Details for {selected_coordinator_name}")
-    coordinator_details = unsigned_consents[unsigned_consents['coordinator'] == selected_coordinator_name][['redcap_consent_id', 'econsent_signed_part']]
+    coordinator_details = unsigned_consents[unsigned_consents['coordinator'] == selected_coordinator_name][['redcap_visit_id', 'econsent_signed_part']]
     st.write(coordinator_details)
