@@ -7,7 +7,7 @@ import seaborn as sns
 client_colors = ['#6c6df9', '#e5a752', '#286e65', '#bcda45', '#99c1db', '#cdb7c7']
 
 # Load data
-uploaded_file = st.file_uploader("Choose a CSV or XLSX file", type=["csv", "xlsx"])
+uploaded_file = st.file_uploader("Choose a CSV or XLSX file which is downloaded from Google Spreadsheets", type=["csv", "xlsx"])
 if uploaded_file:
     if uploaded_file.name.endswith(".csv"):
         data = pd.read_csv(uploaded_file)
