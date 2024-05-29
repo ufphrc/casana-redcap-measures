@@ -5,9 +5,35 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Load the CSV file into a DataFrame
-file_path = '/Users/pruthvin.jeripit/Desktop/Projects/casana-bp/Python/data/CasanaBPMeasures_DATA_2024-05-28_1431.csv'
-df = pd.read_csv(file_path)
+# Prompt the user to upload the CSV or Excel file from REDCap
+st.subheader("Upload the CSV or Excel file exported from REDCap")
+
+st.markdown("""
+Please export the CSV or Microsoft Excel (raw data) from REDCap using the following steps:
+1. Go to the REDCap Data Exports, Reports, and Stats column under the Applications section.
+2. Select "All data (all records and fields)".
+3. Click the "Export" button.
+4. Choose the "CSV / Microsoft Excel (raw data)" option.
+5. **Do not** click the checkbox for "Remove All Identifier Fields (tagged in Data Dictionary)".
+6. Click "Export Data".
+7. Upload the exported CSV file below.
+""")
+
+# Upload the CSV or Excel file
+uploaded_file = st.file_uploader("Choose a CSV or Excel file", type=["csv", "xlsx"])
+
+# Load the uploaded file into a DataFrame
+if uploaded_file is not None:
+    file_extension = uploaded_file.name.split('.')[-1]
+    if file_extension == 'csv':
+        df = pd.read_csv(uploaded_file)
+    elif file_extension == 'xlsx':
+        df = pd.read_excel(uploaded_file)
+    
+    # Display the DataFrame
+    st.write(df)
+else:
+    st.warning("Please upload a CSV or Excel file exported from REDCap.")
 
 # List of columns to delete by serial number including timestamps
 columns_to_delete = [
