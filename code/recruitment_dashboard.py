@@ -145,7 +145,7 @@ if uploaded_file:
 
     # econsent_signed_coord (Yes/No)
     st.subheader("eConsent signed by Coordinator or not?")
-    econsent_signed_coord_counts = df['econsent_signed_coord'].value_counts()
+    econsent_signed_coord_counts = econsent_agreed['econsent_signed_coord'].value_counts()
 
     fig, ax = plt.subplots(figsize=(10, 6))
     sns.barplot(x=econsent_signed_coord_counts.index, y=econsent_signed_coord_counts.values, ax=ax, palette=client_colors[:2])
@@ -158,9 +158,9 @@ if uploaded_file:
     ax.annotate(f'Total: {total_count}', xy=(1, 1.05), xycoords='axes fraction', ha='right', fontsize=12, weight='bold')
     st.pyplot(fig)
 
-    # Find coordinators with unsigned consent forms
+    # Find coordinators with unsigned consent forms within eConsents
     st.subheader("Select a Coordinator to View Unsigned Consent Forms")
-    unsigned_consents = df[df['econsent_signed_coord'] == 'No']
+    unsigned_consents = econsent_agreed[econsent_agreed['econsent_signed_coord'] == 'No']
     unsigned_consents_count = unsigned_consents.groupby('coordinator').size().reset_index(name='Unsigned Consent Count')
 
     # Create radio buttons for coordinators
