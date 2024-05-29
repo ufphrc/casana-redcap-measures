@@ -10,6 +10,9 @@ client_colors = ['#6c6df9', '#e5a752', '#286e65', '#bcda45', '#99c1db', '#cdb7c7
 # Streamlit app
 st.title("Recruitment Data Visualization")
 
+# Prompt the user to upload a specific Excel file
+st.subheader("Upload '2 - casana_screening_scheduling_consenting.xlsx' from Box folder")
+
 # Upload the Excel file
 uploaded_file = st.file_uploader("Choose an Excel file", type="xlsx")
 
