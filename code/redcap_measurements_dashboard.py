@@ -5,36 +5,29 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Prompt the user to upload the CSV or Excel file from REDCap
-st.subheader("Upload the CSV or Excel file exported from REDCap")
+# Prompt the user to upload the CSV file from REDCap
+st.subheader("Upload the CSV file exported from REDCap")
 
 st.markdown("""
-Please export the CSV or Microsoft Excel (raw data) from REDCap using the following steps:
+Please export the CSV (raw data) from REDCap using the following steps:
 1. Go to the REDCap Data Exports, Reports, and Stats column under the Applications section.
-2. Select "All data (all records and fields)".
-3. Click the "Export" button.
-4. Choose the "CSV / Microsoft Excel (raw data)" option.
-5. **Do not** click the checkbox for "Remove All Identifier Fields (tagged in Data Dictionary)".
-6. Click "Export Data".
-7. Upload the exported CSV file below.
+2. In "All data (all records and fields)", click the "Export" button.
+3. Choose the "CSV (raw data)" option.
+4. **Do not** click the checkbox for "Remove All Identifier Fields (tagged in Data Dictionary)".
+5. Click "Export Data".
+6. Upload the exported CSV file below (**DON'T CONSIDER THE NameError, UPLOAD THE FILE**).
 """)
 
-# Upload the CSV or Excel file
-uploaded_file = st.file_uploader("Choose a CSV or Excel file", type=["csv", "xlsx"])
+# Upload the CSV file
+uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
 
 # Load the uploaded file into a DataFrame
 if uploaded_file is not None:
-    file_extension = uploaded_file.name.split('.')[-1]
-    if file_extension == 'csv':
-        df = pd.read_csv(uploaded_file)
-    elif file_extension == 'xlsx':
-        df = pd.read_excel(uploaded_file)
-    
-    # Display the DataFrame
-    st.write(df)
-else:
-    st.warning("Please upload a CSV or Excel file exported from REDCap.")
+    df = pd.read_csv(uploaded_file)
 
+else:
+    st.warning("Please upload a CSV file exported from REDCap.")
+#------------------------------------------------------------------------------------------------------------------------------------#
 # List of columns to delete by serial number including timestamps
 columns_to_delete = [
     'redcap_survey_identifier', 'demo_screening_date', 'demographics_timestamp', 'demo_disability___0', 'demo_disability___1', 
