@@ -66,6 +66,12 @@ if uploaded_file:
         st.pyplot(plt)
         st.write(definition)
 
+    #Table for showing record IDs with poor sits and extra sits    
+    def create_table(data, column_name):
+        table_data = data[data[column_name] > 0][['rec_id', column_name]].reset_index(drop=True)
+        table_data = table_data.sort_values(by=column_name, ascending=False)
+        return table_data
+
     # Displaying results
     st.title('BP Device Validation Dashboard')
 
@@ -96,6 +102,10 @@ if uploaded_file:
         'Frequency',
         '**Definition:**  Poor sits refer to the number of sits where the signal strength was marked as "Poor".'
     )
+    # Display the table for Poor Sits
+    poor_sits_table = create_table(data, 'poor_sits')
+    st.markdown("### Table of Poor Sits")
+    st.dataframe(poor_sits_table)
 
     st.subheader('Frequency of Extra Sits Due to BP Readings')
     plot_bar_chart(
@@ -105,3 +115,7 @@ if uploaded_file:
         'Frequency',
         '**Definition:**  Extra sits refer to the number of additional sits required because the BP readings were not within the required range, despite having good signal strength.'
     )
+    # Display the table for Extra Sits
+    extra_sits_table = create_table(data, 'extra_sits')
+    st.markdown("### Table of Extra Sits Due to BP Readings")
+    st.dataframe(extra_sits_table)
