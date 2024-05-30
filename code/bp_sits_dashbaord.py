@@ -13,6 +13,13 @@ if uploaded_file:
         data = pd.read_csv(uploaded_file)
     else:
         data = pd.read_excel(uploaded_file)
+    
+    # Count and report participants with null values in 'good_readings'
+    null_good_readings_count = data['good_readings'].isnull().sum()
+    st.write(f"**Number of participants who didn't get 3 required readings:** {null_good_readings_count}")
+
+    # Remove rows with null values in 'good_readings'
+    data = data.dropna(subset=['good_readings'])
 
     # Process data
     def extract_sits(row):
@@ -76,7 +83,10 @@ if uploaded_file:
     st.title('BP Device Validation Dashboard')
 
     st.header('Overall Statistics')
-    st.write(f"**Total Number of Participants:** {total_participants}")
+    st.write(f"**Total Number of Participants:** {total_participants + null_good_readings_count}")
+    st.write(f"**Total Number of Participants with 3 required readings:** {total_participants}")
+    st.markdown('---')
+    st.write("**Note:** All the below statistics and graphs are based on participants who got 3 required readings.")
     st.write(f"**Cumulative Number of Total Sits:** {cumulative_total_sits}")
     st.write(f"**Total Good Sits:** {total_good_sits} ({good_sits_percentage:.2f}%)")
     st.write(f"**Total Poor Sits:** {total_poor_sits} ({poor_sits_percentage:.2f}%)")
