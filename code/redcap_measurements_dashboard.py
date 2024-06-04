@@ -5,6 +5,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 
+
 # Prompt the user to upload the CSV file from REDCap
 st.subheader("Upload the CSV file exported from REDCap")
 
@@ -19,14 +20,53 @@ Please export the CSV (raw data) from REDCap using the following steps:
 """)
 
 # Upload the CSV file
-uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
+redcap_file = st.file_uploader("Choose a REDCap CSV file", type="csv")
 
-# Load the uploaded file into a DataFrame
-if uploaded_file is not None:
-    df = pd.read_csv(uploaded_file)
+# Prompt the user to upload the second CSV file
+st.subheader("Upload the second CSV file")
 
-else:
-    st.warning("Please upload a CSV file exported from REDCap.")
+st.markdown("""
+Please upload the second CSV file which contains the columns 'rec_id' and 'good_readings'.
+""")
+
+# Upload the second CSV file
+second_file = st.file_uploader("Choose the second CSV file", type="csv")
+
+if redcap_file is not None and second_file is not None:
+    # Load the uploaded files into DataFrames
+    df_redcap = pd.read_csv(redcap_file)
+    df_second = pd.read_csv(second_file)
+    
+    # User inputs for date range
+    start_date = st.date_input("From Date", value=pd.to_datetime('2024-01-01'))
+    end_date = st.date_input("Until Date", value=pd.to_datetime('2024-12-31'))
+
+    # Function to filter the DataFrame based on user-provided date range
+    def filter_by_date(df, date_column, start_date, end_date):
+        start_date = pd.to_datetime(start_date)
+        end_date = pd.to_datetime(end_date) + pd.Timedelta(days=1)
+        mask = (pd.to_datetime(df[date_column]) >= start_date) & (pd.to_datetime(df[date_column]) < end_date)
+        return df[mask]
+
+    # Filter the REDCap DataFrame based on the selected date range
+    df_redcap = filter_by_date(df_redcap, 'demo_screening_date', start_date, end_date)
+    
+    # Filter the second DataFrame based on the selected date range
+    df_second = filter_by_date(df_second, 'time_1', start_date, end_date)
+    
+    # Match rec_id with record_id in df_redcap
+    df_redcap = df_redcap[df_redcap['record_id'].isin(df_second['rec_id'])]
+
+    # Add radio buttons for filtering options
+    filter_option = st.radio("Select option:", ('Only good readings', 'All'))
+
+    # Filter based on the selected option
+    if filter_option == 'Only good readings':
+        df_second = df_second[df_second['good_readings'].notnull()]
+        df_redcap = df_redcap[df_redcap['record_id'].isin(df_second['rec_id'])]
+
+    # The final DataFrame after all filters
+    df = df_redcap
 #------------------------------------------------------------------------------------------------------------------------------------#
 # List of columns to delete by serial number including timestamps
 columns_to_delete = [
