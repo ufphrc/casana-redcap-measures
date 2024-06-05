@@ -311,7 +311,15 @@ elif option == 'Demographics':
             add_value_labels(ax, df_screening[['demo_race', 'demo_gender']].dropna())  # Adjusted for hue-grouped data
             adjust_yaxis(ax)
             st.pyplot(fig)
-        
+
+    # Calculate mean and standard deviation
+    mean_age = df_screening['demo_age'].mean()
+    std_dev_age = df_screening['demo_age'].std()
+
+    # Display mean and standard deviation
+    st.write(f"Mean Age: {mean_age:.2f}")
+    st.write(f"Standard Deviation: {std_dev_age:.2f}") 
+    
     # Plot histogram for demo_age
     fig, ax = plt.subplots(figsize=(10, 6))
     age_bins = range(50, 91, 5)
