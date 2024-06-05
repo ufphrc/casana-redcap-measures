@@ -317,8 +317,8 @@ elif option == 'Demographics':
     std_dev_age = df_screening['demo_age'].std()
 
     # Display mean and standard deviation
-    st.write(f"Mean Age: {mean_age:.2f}")
-    st.write(f"Standard Deviation: {std_dev_age:.2f}") 
+    st.write(f"**Mean Age:** {mean_age:.2f}")
+    st.write(f"**Standard Deviation:** {std_dev_age:.2f}") 
     
     # Plot histogram for demo_age
     fig, ax = plt.subplots(figsize=(10, 6))
