@@ -312,9 +312,6 @@ elif option == 'Demographics':
             adjust_yaxis(ax)
             st.pyplot(fig)
 
-    # Calculate mean and standard deviation
-    mean_age = df_screening['demo_age'].mean()
-    std_dev_age = df_screening['demo_age'].std()
 
     # Display mean and standard deviation
     st.write(f"**Mean Age:** {mean_age:.2f}")
