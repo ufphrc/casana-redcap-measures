@@ -5,7 +5,6 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 
-
 # Prompt the user to upload the CSV file from REDCap
 st.subheader("Upload the CSV file exported from REDCap")
 
@@ -55,7 +54,7 @@ if redcap_file is not None and second_file is not None:
     df_second = filter_by_date(df_second, 'time_1', start_date, end_date)
     
     # Match rec_id with record_id in df_redcap
-    df_redcap = df_redcap[df_redcap['record_id'].isin(df_second['rec_id'])]
+    #df_redcap = df_redcap[df_redcap['record_id'].isin(df_second['rec_id'])]
 
     # Add radio buttons for filtering options
     filter_option = st.radio("Select option:", ('Only good readings', 'All'))
@@ -97,18 +96,18 @@ if redcap_file is not None and second_file is not None:
         'participant_experience_timestamp', 'initial_phone_eligibility_assessment_timestamp', 
         'physical_health_assessment_timestamp', 'final_eligibility_assessment_timestamp'
     ]
-    
+
     # Delete specified columns
     df.drop(columns=columns_to_delete, inplace=True)
-    
+
     # Rename columns
     df.rename(columns={'moca_3': 'moca_clock_draw', 'delayed_recall': 'moca_delayed_recall'}, inplace=True)
-    
+
     # Clean and validate record_id
     df['record_id'] = df['record_id'].str.strip()
     pattern = re.compile(r'^CBP-\d{4}$')
     df = df[df['record_id'].apply(lambda x: bool(pattern.match(x)))]
-    
+
     # Mapping of column names to their corresponding labels
     column_label_mapping = {
         'demo_gender': {0: 'Male', 1: 'Female'},
@@ -156,7 +155,7 @@ if redcap_file is not None and second_file is not None:
         'exc_eligible': {1: 'Eligible', 0: 'Ineligible'},
         'rating_social_eng': {
             1: 'Not very socially engaged', 2: 'Somewhat socially engaged', 3: 'Moderately socially engaged', 
-             4: 'Quite socially engaged', 5: 'Very socially active'
+            4: 'Quite socially engaged', 5: 'Very socially active'
         },
         'phy_skin': {
             1: 'Type I (Pale white)', 2: 'Type II (Fair)', 3: 'Type III (Medium)', 
@@ -173,41 +172,64 @@ if redcap_file is not None and second_file is not None:
         'final_eligibility_assessment_complete': {0: 'Incomplete', 1: 'Unverified', 2: 'Complete'},
         'participant_experience_complete': {0: 'Incomplete', 1: 'Unverified', 2: 'Complete'}
     }
-    
+
     # Convert numeric values to their corresponding labels based on the mapping
     for column, mapping in column_label_mapping.items():
         if column in df.columns:
             df[column] = df[column].map(mapping).fillna(df[column])
-    
-    # First, create a mapping of record_id to exc_eligible from screening_arm_1
-    record_eligibility_mapping = df[df['redcap_event_name'] == 'screening_arm_1'][['record_id', 'exc_eligible']]
-    
+
+    #----------------------------- Eligibility is not getting exported properly from REDCap ------------------------------------#
+
+    # 1. Take the index of 'exc_eligible_2' and store it
+    exc_eligible_2_index = df.columns.get_loc('exc_eligible_2')
+
+    # 2. Remove 'exc_eligible_2' column
+    df = df.drop(columns=['exc_eligible_2'])
+
+    # 3. Create new column 'exc_eligible_2' at the same index
+    df.insert(exc_eligible_2_index, 'exc_eligible_2', '')
+
+    # 4. Set values in 'exc_eligible_2' based on the given logic
+    df['exc_eligible_2'] = df.apply(lambda row: 'Eligible' if (
+        row['exc_eligible'] == 'Eligible' and
+        40 <= row['phy_hr'] <= 110 and
+        row['phy_spo2'] >= 90 and
+        90 <= row['phy_weight_lb'] <= 350 and
+        row['phy_bmi'] < 45 and
+        row['total_moca_2'] >= 18
+    ) else 'Ineligible', axis=1)
+
+    #----------------------------------------------------------------------------------------------------------------------------#
+
+    # First, create a mapping of record_id to exc_eligible_2 from screening_arm_1
+    record_eligibility_mapping = df[df['redcap_event_name'] == 'screening_arm_1'][['record_id', 'exc_eligible_2']]
+
     # Merge this mapping with the original DataFrame to propagate exc_eligible values to visit_1_arm_1 rows
     df = df.merge(record_eligibility_mapping, on='record_id', suffixes=('', '_from_screening'))
-    
+
     # Now filter rows with 'exc_eligible' = 'Eligible' based on the propagated values
-    df = df[df['exc_eligible_from_screening'] == 'Eligible']
-    
+    df = df[df['exc_eligible_2_from_screening'] == 'Eligible']
+
     # Drop the temporary column used for merging
-    df.drop(columns=['exc_eligible_from_screening'], inplace=True)
-    
+    df.drop(columns=['exc_eligible_2_from_screening'], inplace=True)
+
     # Divide into two dataframes
     df_screening = df[df['redcap_event_name'] == 'screening_arm_1'].drop(columns=['pe_easy', 'pe_valuable', 'participant_experience_complete']).copy()
-    df_visit = df[df['redcap_event_name'] == 'visit_1_arm_1'][['record_id',  'exc_eligible', 'pe_easy', 'pe_valuable', 'participant_experience_complete']].copy()
-    
+    df_visit = df[df['redcap_event_name'] == 'visit_1_arm_1'][['record_id',  'exc_eligible_2', 'pe_easy', 'pe_valuable', 'participant_experience_complete']].copy()
+
     # Ensure exc_eligible is in both dataframes
-    df_screening['exc_eligible'] = df_screening['exc_eligible']
-    df_visit['exc_eligible'] = df_visit['exc_eligible']
-    
+    df_screening['exc_eligible_2'] = df_screening['exc_eligible_2']
+    df_visit['exc_eligible_2'] = df_visit['exc_eligible_2']
+
     df_screening = df_screening.drop(columns=[
         'redcap_event_name', 'exc_age', 'exc_eng', 'exc_loc', 'exc_sit', 'exc_stand', 'exc_mob', 'exc_res', 
         'exc_consent', 'exc_mcs', 'exc_valve', 'exc_afib', 'exc_dialysis', 'exc_allergies', 'exc_skin', 
         'exc_hr', 'exc_spo2', 'exc_weight', 'exc_bmi', 'initial_phone_eligibility_assessment_complete'
     ])
-    
+
     # Create a new column 'sub_moca_score'
     df_screening['sub_moca_score'] = df_screening[['moca_clock_draw', 'moca_delayed_recall']].sum(axis=1)
-    
+
     # Define a function to assign color based on sub_moca_score
     def assign_moca_color(score):
         if score in [6, 7, 8]:
@@ -218,10 +240,10 @@ if redcap_file is not None and second_file is not None:
             return 'Red'
         else:
             return 'Unknown'
-    
+
     # Apply the function to create the 'sub_moca_color' column
     df_screening['sub_moca_color'] = df_screening['sub_moca_score'].apply(assign_moca_color)
-    
+
     # Define functions for plotting
     def add_value_labels(ax, data):
         """Add labels with count and percentage to the end of each bar in a bar chart."""
@@ -231,7 +253,7 @@ if redcap_file is not None and second_file is not None:
             percentage = (height / total) * 100
             ax.text(rect.get_x() + rect.get_width() / 2., height + 0.1, 
                     f'{int(height)}\n({percentage:.1f}%)', ha='center', va='bottom')
-    
+
     def adjust_yaxis(ax):
         """Adjust y-axis to make it more visually appealing."""
         if len(ax.patches) > 0:
@@ -240,19 +262,19 @@ if redcap_file is not None and second_file is not None:
             ax.set_ylim(0, upper_limit)
             step = max(1, int(highest_count / 5))
             ax.set_yticks(np.arange(0, upper_limit, step=step))
-    
+
     # Streamlit sidebar options
     option = st.sidebar.selectbox(
         'Which visualization would you like to see?',
         ('Eligibility/Visit_1 Completion', 'Demographics', 'Overall Health', 'MoCA Score Distribution', 'Physical Health')
     )
-    
+
     # Eligibility/Visit_1 Completion visualization
     if option == 'Eligibility/Visit_1 Completion':
         fig, axs = plt.subplots(2, 1, figsize=(7, 10), tight_layout=True)
         
         # Adjust the DataFrame for plotting purposes
-        df_screening['eligibility_status'] = df_screening['exc_eligible']
+        df_screening['eligibility_status'] = df_screening['exc_eligible_2']
         
         # Eligibility Status
         sns.countplot(x='eligibility_status', data=df_screening, palette='pastel', ax=axs[0])
@@ -260,36 +282,52 @@ if redcap_file is not None and second_file is not None:
         axs[0].set_xlabel('')  # Remove x-axis label
         add_value_labels(axs[0], df_screening)
         adjust_yaxis(axs[0])
-    
+
         # Visit 1 Completion Status
         df_visit['visit_1_complete'] = df_visit['participant_experience_complete'].apply(lambda x: 'Completed' if x == 'Complete' else 'Incomplete')
-    
+
         sns.countplot(x='visit_1_complete', data=df_visit, palette='pastel', ax=axs[1])
         axs[1].set_title('Visit 1 Completion Status')
         axs[1].set_xlabel('')  # Remove x-axis label
         add_value_labels(axs[1], df_visit)
         adjust_yaxis(axs[1])
-    
-    
+
+
         st.pyplot(fig)
-    
+
     elif option == 'Demographics':
         # Define the order for education levels
         education_order = [
             'High school graduate', '12th grade or less', 'Some college',
             'Associate\'s Degree', 'Bachelor\'s Degree', 'Master\'s Degree', 'Doctorate or higher'
         ]
-    
-        # Convert the 'demo_highest_edu' column to a categorical type with the specified order
+        race_order = [
+            'White or Caucasian', 'Black or African-American', 
+            'Asian or Pacific Islander', 
+            'Multiracial or Biracial', 'Not listed here'
+        ]
+
+        # Convert the 'demo_highest_edu' and 'demo_race' columns to categorical types with the specified order
         df_screening['demo_highest_edu'] = pd.Categorical(
             df_screening['demo_highest_edu'], categories=education_order, ordered=True
         )
-    
+        df_screening['demo_race'] = pd.Categorical(
+            df_screening['demo_race'], categories=race_order, ordered=True
+        )
+
         demographic_cols = ['demo_gender', 'demo_race', 'demo_highest_edu', 'demo_current_employ', 'demo_current_marital']
         for col in demographic_cols:
             fig, ax = plt.subplots(figsize=(8, 6))
             if col == 'demo_highest_edu':
-                plot = sns.countplot(x=col, data=df_screening, palette='pastel', order=education_order, ax=ax)
+                valid_categories = df_screening[col].dropna().value_counts().index.tolist()
+                valid_categories = [cat for cat in education_order if cat in valid_categories]
+                df_filtered = df_screening[df_screening[col].isin(valid_categories)]
+                plot = sns.countplot(x=col, data=df_filtered, palette='pastel', order=valid_categories, ax=ax)
+            elif col == 'demo_race':
+                valid_categories = df_screening[col].dropna().value_counts().index.tolist()
+                valid_categories = [cat for cat in race_order if cat in valid_categories]
+                df_filtered = df_screening[df_screening[col].isin(valid_categories)]
+                plot = sns.countplot(x=col, data=df_filtered, palette='pastel', order=valid_categories, ax=ax)
             else:
                 plot = sns.countplot(x=col, data=df_screening, palette='pastel', ax=ax)
             add_value_labels(ax, df_screening[col].dropna())  # Pass the filtered DataFrame directly
@@ -298,11 +336,11 @@ if redcap_file is not None and second_file is not None:
             plt.xlabel('')
             plt.xticks(rotation=45)
             st.pyplot(fig)
-    
+
             # Special additional graph for gender distribution within each race category
             if col == 'demo_race':
                 fig, ax = plt.subplots(figsize=(10, 6))
-                sns.countplot(x='demo_race', hue='demo_gender', data=df_screening, palette='pastel', ax=ax)
+                sns.countplot(x='demo_race', hue='demo_gender', data=df_filtered, palette='pastel', order=valid_categories, ax=ax)
                 plt.title('Gender Distribution Within Each Race Category')
                 plt.xlabel('Race')
                 plt.ylabel('Count')
@@ -311,12 +349,15 @@ if redcap_file is not None and second_file is not None:
                 add_value_labels(ax, df_screening[['demo_race', 'demo_gender']].dropna())  # Adjusted for hue-grouped data
                 adjust_yaxis(ax)
                 st.pyplot(fig)
-    
-    
+
+        # Calculate mean and standard deviation
+        mean_age = df_screening['demo_age'].mean()
+        std_dev_age = df_screening['demo_age'].std()
+
         # Display mean and standard deviation
         st.write(f"**Mean Age:** {mean_age:.2f}")
-        st.write(f"**Standard Deviation:** {std_dev_age:.2f}") 
-        
+        st.write(f"**Standard Deviation:** {std_dev_age:.2f}")
+
         # Plot histogram for demo_age
         fig, ax = plt.subplots(figsize=(10, 6))
         age_bins = range(50, 91, 5)
@@ -328,8 +369,9 @@ if redcap_file is not None and second_file is not None:
         plt.ylabel('Count')
         plt.xticks(age_bins)
         st.pyplot(fig)
-    
-    
+
+
+
     # Overall Health visualization
     elif option == 'Overall Health':
         fig, ax = plt.subplots(figsize=(8, 6), tight_layout=True)
@@ -348,29 +390,29 @@ if redcap_file is not None and second_file is not None:
         ax.text(1.05, 0.95, stats_text, transform=ax.transAxes, ha='left', va='top')
         
         st.pyplot(fig)
-    
+
     # MoCA Score Distribution visualization
     elif option == 'MoCA Score Distribution':
-    
+
         education_order = [
             'High school graduate', '12th grade or less', 'Some college',
             'Associate\'s Degree', 'Bachelor\'s Degree', 'Master\'s Degree', 'Doctorate or higher'
         ]
-    
+
         # Shorter labels for x-axis
         education_labels_short = [
             'HS', '12th', 'College',
             'Asso', 'Bach', 'Mast', 'Doc'
         ]
-    
+
         # Create a dictionary for mapping full names to shorter names
         education_label_map = dict(zip(education_order, education_labels_short))
-    
+
         # Reorder the data
         df_screening['demo_highest_edu'] = pd.Categorical(
             df_screening['demo_highest_edu'], categories=education_order, ordered=True
         )
-    
+
         # MoCA Score Distribution visualization
         if option == 'MoCA Score Distribution':
             # Create subplots for box plots and pie charts
@@ -434,12 +476,12 @@ if redcap_file is not None and second_file is not None:
                     # Position stats in the rightmost corner
                     axs[i].text(1.05, 0.95, f'Mean: {mean:.2f}\nMedian: {median}\nStd: {std:.2f}', 
                                 transform=axs[i].transAxes, ha='left', va='top', fontsize=9)
-    
+
             st.pyplot(fig)
-    
+
         # Define color schemes for the charts
         sub_moca_colors = {'Green': '#209c05', 'Yellow': '#f2ce02', 'Red': '#ff0a0a'}
-    
+
         # Overall Sub MoCA Color Distribution
         st.subheader('Overall Sub MoCA Color Distribution')
         color_counts = df_screening['sub_moca_color'].value_counts()
@@ -447,7 +489,7 @@ if redcap_file is not None and second_file is not None:
         ax.pie(color_counts, labels=[f'{i}\n({v})' for i, v in color_counts.items()], colors=[sub_moca_colors[x] for x in color_counts.index], autopct='%1.1f%%', startangle=90)
         ax.axis('equal')
         st.pyplot(fig)
-    
+
         # Gender-specific Sub MoCA Color Distribution
         col1, col2 = st.columns(2)
         for col, gender in zip([col1, col2], ['Male', 'Female']):
@@ -458,14 +500,14 @@ if redcap_file is not None and second_file is not None:
                 ax.pie(gender_color_counts, labels=[f'{i}\n({v})' for i, v in gender_color_counts.items()], colors=[sub_moca_colors[x] for x in gender_color_counts.index], autopct='%1.1f%%', startangle=90)
                 ax.axis('equal')
                 st.pyplot(fig)
-    
+
         # Education-level Sub MoCA Color Distribution
         st.subheader('Education-Level Sub MoCA Color Distribution')
         edu_levels = df_screening['demo_highest_edu'].unique()
-    
+
         # Filter out empty education levels
         edu_levels = [edu for edu in edu_levels if not pd.isnull(edu)]
-    
+
         # Iterate over education levels and create subplots
         for i, edu in enumerate(edu_levels):
             if i % 2 == 0:  # Start a new row for every two plots
@@ -477,25 +519,25 @@ if redcap_file is not None and second_file is not None:
                 ax.pie(edu_color_counts, labels=[f'{i}\n({v})' for i, v in edu_color_counts.items()], colors=[sub_moca_colors[x] for x in edu_color_counts.index], autopct='%1.1f%%', startangle=90)
                 ax.axis('equal')
                 st.pyplot(fig)
-    
+
     # Physical Health visualization
     elif option == 'Physical Health':
         st.header('Statistical Description of Physical Measurements')
         physical_measures_cols = ['phy_height_inch', 'phy_weight_lb', 'phy_bmi', 'phy_arm', 'phy_sternal']
         physical_measures_names = ['Height (inches)', 'Weight (lbs)', 'BMI', 'Arm circumference (cm)', 'Sternal length (inch)']
-    
+
         # Calculating descriptive statistics and transposing the result
         physical_desc = df_screening[physical_measures_cols].describe().transpose()
-    
+
         # Rename the index to have more meaningful names
         physical_desc.index = physical_measures_names
-    
+
         # Use string formatting to ensure numbers are rounded and displayed with two decimal places
         formatted_physical_desc = physical_desc.applymap(lambda x: f'{x:.2f}')
-    
+
         # Displaying the table
         st.table(formatted_physical_desc)
-    
+
         # Adding histogram for phy_skin
         st.subheader('Skin Type Distribution')
         skin_types = ['Type I (Pale white)', 'Type II (Fair)', 'Type III (Medium)', 'Type IV (Olive)', 'Type V (Brown)', 'Type VI (Very Dark)']
@@ -505,7 +547,7 @@ if redcap_file is not None and second_file is not None:
         # Explicitly create a figure and axis object
         fig, ax = plt.subplots(figsize=(10, 6))
         sns.barplot(x=skin_types, y=skin_counts.values, palette=colors, ax=ax)
-    
+
         # Add labels with count and percentage to the end of each bar in a bar chart
         total = len(df_screening['phy_skin'])
         for rect in ax.patches:
@@ -513,17 +555,17 @@ if redcap_file is not None and second_file is not None:
             percentage = (height / total) * 100
             ax.text(rect.get_x() + rect.get_width() / 2., height + 0.1, 
                     f'{int(height)}\n({percentage:.1f}%)', ha='center', va='bottom')
-    
+
         ax.set_xticklabels(skin_types, rotation=45)
         ax.set_ylabel('Number of Participants')
         ax.set_title('Distribution of Skin Types')
-    
+
         # Adjust y-axis to make it more visually appealing
         if len(ax.patches) > 0:
             highest_count = max([p.get_height() for p in ax.patches])
             upper_limit = highest_count + (0.2 * highest_count)
             ax.set_ylim(0, upper_limit)
             ax.set_yticks(np.arange(0, upper_limit, step=max(1, highest_count // 5)))
-    
+
         # Use the figure object with st.pyplot()
         st.pyplot(fig)
