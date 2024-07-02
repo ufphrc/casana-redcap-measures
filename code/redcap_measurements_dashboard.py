@@ -54,7 +54,7 @@ if redcap_file is not None and second_file is not None:
     df_second = filter_by_date(df_second, 'time_1', start_date, end_date)
     
     # Match rec_id with record_id in df_redcap
-    #df_redcap = df_redcap[df_redcap['record_id'].isin(df_second['rec_id'])]
+    df_redcap = df_redcap[df_redcap['record_id'].isin(df_second['rec_id'])]
 
     # Add radio buttons for filtering options
     filter_option = st.radio("Select option:", ('Only good readings', 'All'))
@@ -178,48 +178,25 @@ if redcap_file is not None and second_file is not None:
         if column in df.columns:
             df[column] = df[column].map(mapping).fillna(df[column])
 
-    #----------------------------- Eligibility is not getting exported properly from REDCap ------------------------------------#
-
-    # 1. Take the index of 'exc_eligible_2' and store it
-    exc_eligible_2_index = df.columns.get_loc('exc_eligible_2')
-
-    # 2. Remove 'exc_eligible_2' column
-    df = df.drop(columns=['exc_eligible_2'])
-
-    # 3. Create new column 'exc_eligible_2' at the same index
-    df.insert(exc_eligible_2_index, 'exc_eligible_2', '')
-
-    # 4. Set values in 'exc_eligible_2' based on the given logic
-    df['exc_eligible_2'] = df.apply(lambda row: 'Eligible' if (
-        row['exc_eligible'] == 'Eligible' and
-        40 <= row['phy_hr'] <= 110 and
-        row['phy_spo2'] >= 90 and
-        90 <= row['phy_weight_lb'] <= 350 and
-        row['phy_bmi'] < 45 and
-        row['total_moca_2'] >= 18
-    ) else 'Ineligible', axis=1)
-
-    #----------------------------------------------------------------------------------------------------------------------------#
-
-    # First, create a mapping of record_id to exc_eligible_2 from screening_arm_1
-    record_eligibility_mapping = df[df['redcap_event_name'] == 'screening_arm_1'][['record_id', 'exc_eligible_2']]
+    # First, create a mapping of record_id to exc_eligible from screening_arm_1
+    record_eligibility_mapping = df[df['redcap_event_name'] == 'screening_arm_1'][['record_id', 'exc_eligible']]
 
     # Merge this mapping with the original DataFrame to propagate exc_eligible values to visit_1_arm_1 rows
     df = df.merge(record_eligibility_mapping, on='record_id', suffixes=('', '_from_screening'))
 
     # Now filter rows with 'exc_eligible' = 'Eligible' based on the propagated values
-    df = df[df['exc_eligible_2_from_screening'] == 'Eligible']
+    df = df[df['exc_eligible_from_screening'] == 'Eligible']
 
     # Drop the temporary column used for merging
-    df.drop(columns=['exc_eligible_2_from_screening'], inplace=True)
+    df.drop(columns=['exc_eligible_from_screening'], inplace=True)
 
     # Divide into two dataframes
     df_screening = df[df['redcap_event_name'] == 'screening_arm_1'].drop(columns=['pe_easy', 'pe_valuable', 'participant_experience_complete']).copy()
-    df_visit = df[df['redcap_event_name'] == 'visit_1_arm_1'][['record_id',  'exc_eligible_2', 'pe_easy', 'pe_valuable', 'participant_experience_complete']].copy()
+    df_visit = df[df['redcap_event_name'] == 'visit_1_arm_1'][['record_id',  'exc_eligible', 'pe_easy', 'pe_valuable', 'participant_experience_complete']].copy()
 
     # Ensure exc_eligible is in both dataframes
-    df_screening['exc_eligible_2'] = df_screening['exc_eligible_2']
-    df_visit['exc_eligible_2'] = df_visit['exc_eligible_2']
+    df_screening['exc_eligible'] = df_screening['exc_eligible']
+    df_visit['exc_eligible'] = df_visit['exc_eligible']
 
     df_screening = df_screening.drop(columns=[
         'redcap_event_name', 'exc_age', 'exc_eng', 'exc_loc', 'exc_sit', 'exc_stand', 'exc_mob', 'exc_res', 
@@ -274,7 +251,7 @@ if redcap_file is not None and second_file is not None:
         fig, axs = plt.subplots(2, 1, figsize=(7, 10), tight_layout=True)
         
         # Adjust the DataFrame for plotting purposes
-        df_screening['eligibility_status'] = df_screening['exc_eligible_2']
+        df_screening['eligibility_status'] = df_screening['exc_eligible']
         
         # Eligibility Status
         sns.countplot(x='eligibility_status', data=df_screening, palette='pastel', ax=axs[0])
