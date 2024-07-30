@@ -280,8 +280,8 @@ if redcap_file is not None and second_file is not None:
         ]
         race_order = [
             'White or Caucasian', 'Black or African-American', 
-            'Asian or Pacific Islander', 
-            'Multiracial or Biracial', 'Not listed here'
+            'Asian or Pacific Islander', 'Hispanic or Latino',
+            'Multiracial or Biracial', 'Not listed here', 'Native American or Alaskan American'
         ]
 
         # Convert the 'demo_highest_edu' and 'demo_race' columns to categorical types with the specified order
